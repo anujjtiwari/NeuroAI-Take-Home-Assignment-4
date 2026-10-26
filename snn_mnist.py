@@ -184,14 +184,22 @@ def simulate(X, W, p, theta_frozen=None, verbose=True):
 
 
 def calibrate_homeostasis(X_calib, W, p, r_target=20 * Hz, tau_r=0.5 * second,
-                          eta=0.5 * mV, theta_min=None, theta_max=None, verbose=True):
+                          eta=0.5 * mV, theta_min=None, theta_max=None, sim_time=20 * second,
+                          verbose=True):
     """
     Run the network with an adaptive threshold on a calibration stream and
     return the per-neuron thresholds reached at the end (then frozen).
     Threshold dynamics:  d theta/dt = eta * (r - r_target), r = low-passed own rate.
+    The B parallel replicas each see a different image stream; the calibration
+    images are cycled until every replica has adapted for `sim_time` of
+    simulated time (>> tau_r, so the thresholds converge).
+    Returns the frozen thresholds and a (n_chunks, n_hidden) trace of replica 0.
     """
     defaultclock.dt = p["dt"]
     B, n_in, n_h = p["batch"], p["n_in"], p["n_hidden"]
+    n_needed = int(round(float(sim_time / p["t_enc"]))) * B
+    reps = int(np.ceil(n_needed / X_calib.shape[0]))
+    X_calib = np.tile(X_calib, (reps, 1))[:n_needed]
     n_img = X_calib.shape[0]
     n_chunks = int(np.ceil(n_img / B))
     Xpad = np.zeros((n_chunks * B, n_in))
