@@ -1,0 +1,7 @@
+brian2==2.9.0
+numpy<2.3
+scikit-learn
+matplotlib
+jupyter
+nbformat
+nbconvert
